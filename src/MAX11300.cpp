@@ -1,25 +1,37 @@
 
+// MAX11300.CPP
+// versions
+// 7sep2021 sws
+//  - add 'getID' command'
+//  - add select pin mode and level setup in non-interrupt instantiation
+
+
+
 #include "MAX11300.h"
 
 // default values
 #define DEFAULT_THRESHOLD	0x03ff
 #define TEMP_LSB			(0.125/16)
 
-MAX11300::MAX11300(SPIClass *spi, uint8_t convertPin, uint8_t selectPin) {
+SPISettings MAX_SPI(5000000L, MSBFIRST, SPI_MODE0);
+
+MAX11300::MAX11300(uint8_t convertPin, uint8_t selectPin) {
 	_convertPin = convertPin;
-	_spi = spi;
+//	_spi = spi;
 	_select = selectPin;
 	_interrupt = 255;
 	_analogStatus = 0;
 	pinMode(_convertPin, OUTPUT);
+	pinMode(_select, OUTPUT);	
 	digitalWrite(_convertPin, HIGH);
-	_spiMode = new SPISettings(20000000L, LSBFIRST, SPI_MODE0);
-	_spi->begin();
+	digitalWrite(_select, HIGH);	
+//	_spiMode = new SPISettings(5000000L, MSBFIRST, SPI_MODE0); //20000000L
+//	_spi->begin();
 }
 
-MAX11300::MAX11300(SPIClass *spi, uint8_t convertPin, uint8_t selectPin, uint8_t interruptNumber) {
+MAX11300::MAX11300(uint8_t convertPin, uint8_t selectPin, uint8_t interruptNumber) {
 	_convertPin = convertPin;
-	_spi = spi;
+//	_spi = spi;
 	_select = selectPin;
 	_interrupt = interruptNumber;
 	_analogStatus = 0;
@@ -27,13 +39,17 @@ MAX11300::MAX11300(SPIClass *spi, uint8_t convertPin, uint8_t selectPin, uint8_t
 	pinMode(_select, OUTPUT);
 	digitalWrite(_convertPin, HIGH);
 	digitalWrite(_select, HIGH);
-	_spiMode = new SPISettings(20000000L, LSBFIRST, SPI_MODE0);
-	_spi->begin();
-	_spi->usingInterrupt(_interrupt);
+//	_spiMode = new SPISettings(20000000L, MSBFIRST, SPI_MODE0);
+//	_spi->begin();
+//	_spi->usingInterrupt(_interrupt);
 }
 
 bool MAX11300::begin(void) {
 	//if (_interrupt < 255) {attachInterrupt(_interrupt, MAX11300::serviceInterrupt, FALLING);}
+	SPI.begin();
+	
+	writeRegister ( MAX_DEVCTL, 0x8000);  // reset
+	writeRegister ( MAX_DEVCTL, 0x0744);	// enable int temp
 	return true;
 }
 
@@ -191,6 +207,19 @@ bool MAX11300::writeAnalogPin (uint8_t pin, uint16_t value) {
 	return writeRegister((MAX_DACDAT_BASE + pin), value);
 }
 
+bool MAX11300::writeDigitalVolts( uint8_t pin, float volts)  // set '1' voltage value for digital out
+{
+	bool status = false;
+	if( (volts <= 10.0) && (volts >= 0) ) 
+	{
+		uint16_t val = (uint16_t) ( 4095.0 * volts / 10.0);
+		status =  writeAnalogPin( pin, val);	
+		delay(1);
+	}
+	return status;	
+}	
+	
+
 bool MAX11300::writeDigitalPin (uint8_t pin, bool value) {
 	uint8_t address, offset;
 	uint16_t reg;
@@ -347,6 +376,12 @@ bool MAX11300::isAnalogConversionComplete (void) {
 	return false;
 }
 
+uint16_t MAX11300::getID(void)
+{
+	return readRegister(0);
+}	
+	
+
 void MAX11300::serviceInterrupt(void) {
 	lastEvent.time = micros();							// set the time as soon as possible
 	uint16_t lastIntVector = lastEvent.lastIntVector;	// copy the last interrupt vector over for comparison
@@ -399,37 +434,56 @@ MAX11300Event MAX11300::getLastEvent (void) {
 }
 
 bool MAX11300::writeRegister (uint8_t address, uint16_t value) {
-	return writeRegister(address, &value, 1);
+	//return writeRegister(address, &value, 1);
+	SPI.beginTransaction(MAX_SPI);
+	digitalWrite(_select, LOW);
+	SPI.transfer((address << 1));
+	SPI.transfer16(value);
+	digitalWrite(_select, HIGH);
+	SPI.endTransaction();
+	return true;	
 }
 
-bool MAX11300::writeRegister (uint8_t address, uint16_t * values, uint8_t size) {
-	_spi->beginTransaction(*_spiMode);
+bool MAX11300::writeRegister (uint8_t address, uint16_t * values, uint8_t size) 
+{
+	SPI.beginTransaction(MAX_SPI);
+//	SPI.beginTransaction(*_spiMode);
 	digitalWrite(_select, LOW);
-	_spi->transfer((address << 1) | 1);
+	SPI.transfer((address << 1));
 	for (uint8_t i = 0; i < size; i++) {
-		_spi->transfer((uint8_t)((values[i] >> 8) && 0xff));
-		_spi->transfer((uint8_t)(values[i] && 0xff));
+		SPI.transfer((uint8_t)((values[i] >> 8) && 0xff));
+		SPI.transfer((uint8_t)(values[i] && 0xff));
 	}
 	digitalWrite(_select, HIGH);
-	_spi->endTransaction();
+	SPI.endTransaction();
 	return true;
 }
 
 uint16_t MAX11300::readRegister (uint8_t address) {
 	uint16_t val = 0;
-	readRegister(address, &val, 1);
+	// readRegister(address, &val, 1);
+	// return val;
+	SPI.beginTransaction(MAX_SPI);
+	digitalWrite(_select, LOW);
+	SPI.transfer((address << 1) | 1);
+	val = ((uint16_t)(SPI.transfer16(0X00) ));
+
+	digitalWrite(_select, HIGH);
+	SPI.endTransaction();
 	return val;
+	
+	
 }
 
 uint16_t MAX11300::readRegister (uint8_t address, uint16_t * values, uint8_t size) {
-	_spi->beginTransaction(*_spiMode);
+	SPI.beginTransaction(MAX_SPI);
 	digitalWrite(_select, LOW);
-	_spi->transfer((address << 1));
+	SPI.transfer((address << 1) | 1);
 	for (uint8_t i = 0; i < size; i++) {
-		values[i] = ((uint16_t)(_spi->transfer(0)) << 8) + _spi->transfer(0);
+		values[i] = ((uint16_t)(SPI.transfer(0)) << 8) + SPI.transfer(0);
 	}
 	digitalWrite(_select, HIGH);
-	_spi->endTransaction();
+	SPI.endTransaction();
 	return size;
 }
 
@@ -462,3 +516,21 @@ void MAX11300Event::clearEvent(void) {
 	event = eventNONE;
 	status = 0;
 }
+
+bool MAX11300::setDACrange(uint8_t pin, DACRange_t voltRange) {
+	uint16_t configuration;									
+	configuration = readRegister(MAX_FUNC_BASE + pin);	//read in the existing configuration so we don't stomp it
+	if( (configuration & MAX_FUNCID_MASK) != MAX_FUNCID_DAC) return false; // mode must be DAC 
+    configuration = (configuration & ~(MAX_DAC_RANGE_MASK)) | voltRange;
+	if (writeRegister((MAX_FUNC_BASE + pin), configuration)) return true;
+	return false;
+}	
+
+bool MAX11300::setADCrange(uint8_t pin, ADCRange_t voltRange) {
+	uint16_t configuration;									
+	configuration = readRegister(MAX_FUNC_BASE + pin);	//read in the existing configuration so we don't stomp it
+	if( (configuration & MAX_FUNCID_MASK) != MAX_FUNCID_ADC) return false; // mode must be ADC 
+    configuration = (configuration & ~(MAX_ADC_RANGE_MASK)) | voltRange;
+	if (writeRegister((MAX_FUNC_BASE + pin), configuration)) return true;
+	return false;
+}	

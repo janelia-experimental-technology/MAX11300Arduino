@@ -9,7 +9,7 @@
 #define MAX_ADCST_LEN		2
 #define MAX_ADCST_L			0x02	
 #define MAX_ADCST_H			0x03
-#define MAX_DACOI			0x04
+#define MAX_DACOIST			0x04   /// was DACOI, conflicts with interrupt flag field 5
 #define MAX_DACOI_LEN		2
 #define MAX_DACOI_L			0x04
 #define MAX_DACOI_H			0x05
@@ -314,5 +314,7 @@
 // Data register masks
 #define MAX_ADC_MASK				0x0fff
 #define MAX_DAC_MASK				0x0fff
+#define MAX_DAC_RANGE_MASK 			0x0700
+#define MAX_ADC_RANGE_MASK			0x0700
 
 #endif

@@ -114,8 +114,8 @@ class MAX11300 {
 		 * @param convertPin - The pin attached to the CNVT pin on the MAX11300
 		 *
 		 */	 
-		MAX11300(SPIClass* spi, uint8_t convertPin, uint8_t selectPin);
-		MAX11300(SPIClass* spi, uint8_t convertPin, uint8_t selectPin, uint8_t interruptNumber);
+		MAX11300(uint8_t convertPin, uint8_t selectPin);
+		MAX11300(uint8_t convertPin, uint8_t selectPin, uint8_t interruptNumber);
 		
 		bool begin(void);
 		bool end(void);
@@ -169,6 +169,7 @@ class MAX11300 {
 		bool readDigitalPin (uint8_t pin);
 		bool writeAnalogPin (uint8_t pin, uint16_t value);
 		bool writeDigitalPin (uint8_t pin, bool value);
+		bool writeDigitalVolts( uint8_t pin, float volts);
 		bool setPinAveraging (uint8_t pin, uint8_t samples);
 		uint8_t getPinAveraging (uint8_t pin);
 		bool setPinADCref (uint8_t pin, ADCref_t reference);
@@ -195,6 +196,9 @@ class MAX11300 {
 		bool burstAnalogWrite (uint8_t startPin, uint16_t* samples, uint8_t size);
 		bool isAnalogDataReady (uint8_t pin);
 		bool isAnalogConversionComplete (void);
+		uint16_t getID(void);
+		bool setDACrange(uint8_t pin, DACRange_t voltRange);
+		bool setADCrange(uint8_t pin, ADCRange_t voltRange);
 		
 		void serviceInterrupt(void);
 		MAX11300Event getLastEvent (void);
