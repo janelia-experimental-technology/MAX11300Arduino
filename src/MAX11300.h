@@ -63,8 +63,8 @@ enum ADCref_t {
 };
 
 enum DACref_t {
-	DACInternal = 	0x0000,
-	DACExternal = 	(1 << MAX_DACREF),
+	DACInternal = 	(1 << MAX_DACREF),
+	DACExternal = 	0x0000,
 	DACrefNONE = 	0xffff
 };
 
@@ -115,7 +115,7 @@ class MAX11300 {
 		 *
 		 */	 
 		MAX11300(uint8_t convertPin, uint8_t selectPin);
-		MAX11300(uint8_t convertPin, uint8_t selectPin, uint8_t interruptNumber);
+//		MAX11300(uint8_t convertPin, uint8_t selectPin, uint8_t interruptNumber);
 		
 		bool begin(void);
 		bool end(void);
@@ -129,8 +129,8 @@ class MAX11300 {
 		 * @retval true - The pin mode setting succeeded
 		 * @retval false - The pin mode setting failed, or no differential pin was given for analogDifferential
 		 */
-		bool setPinMode(uint8_t pin, pinMode_t mode);
-		bool setPinMode(uint8_t pin, pinMode_t mode, uint8_t differentialPin);
+		bool pinMode(uint8_t pin, pinMode_t mode);
+		bool pinModeMax(uint8_t pin, pinMode_t mode, uint8_t differentialPin);
 		
 		/**
 		 * Read the mode of the given pin
@@ -165,17 +165,18 @@ class MAX11300 {
 		bool setDigitalInputMode(uint8_t pin, GPImode_t mode);
 		GPImode_t getDigitalInputMode(uint8_t pin);
 		
-		uint16_t readAnalogPin (uint8_t pin);
-		bool readDigitalPin (uint8_t pin);
-		bool writeAnalogPin (uint8_t pin, uint16_t value);
-		bool writeDigitalPin (uint8_t pin, bool value);
-		bool writeDigitalVolts( uint8_t pin, float volts);
+		uint16_t analogRead(uint8_t pin);
+		bool digitalRead(uint8_t pin);
+		bool analogWrite (uint8_t pin, uint16_t value);
+		bool digitalWrite(uint8_t pin, uint8_t value);
+		//bool digitalWriteMax(uint8_t pin, uint8_t value);
+		bool digitalRange( uint8_t pin, float volts);
 		bool setPinAveraging (uint8_t pin, uint8_t samples);
 		uint8_t getPinAveraging (uint8_t pin);
-		bool setPinADCref (uint8_t pin, ADCref_t reference);
-		ADCref_t getPinADCref (uint8_t pin);
-		bool setDACref (DACref_t reference);
-		DACref_t getDACref (void);
+		bool ADCreference (uint8_t pin, ADCref_t reference);
+		ADCref_t getADCreference (uint8_t pin);
+		bool DACreference (DACref_t reference);
+		DACref_t getDACreference (void);
 		bool setConversionRate(conversionRate_t rate);
 		conversionRate_t getConversionRate(void);
 		double readInternalTemp (void);
@@ -197,11 +198,13 @@ class MAX11300 {
 		bool isAnalogDataReady (uint8_t pin);
 		bool isAnalogConversionComplete (void);
 		uint16_t getID(void);
-		bool setDACrange(uint8_t pin, DACRange_t voltRange);
-		bool setADCrange(uint8_t pin, ADCRange_t voltRange);
+		bool DACrange(uint8_t pin, DACRange_t voltRange);
+		bool ADCrange(uint8_t pin, ADCRange_t voltRange);
 		
 		void serviceInterrupt(void);
 		MAX11300Event getLastEvent (void);
+		
+	    uint16_t readMaxRegister(uint8_t reg);
 	
 	private:
 	

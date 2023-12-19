@@ -1,7 +1,13 @@
-# MAX11300Arduino
-This is a library for talking to the MAX11300 from any Arduino. 
+# MAX11300
+This is a library for interfacing any Arduino to the MAX11300. 
 
-The intent is to provide access to the core functions of the MAX11300 PIXI described in the datasheet (http://datasheets.maximintegrated.com/en/ds/MAX11300.pdf)
-The analog switch and level translation functions will be skipped. 
+The intent is to provide access to the core functions of the MAX11300 PIXI described in the datasheet
+http://datasheets.maximintegrated.com/en/ds/MAX11300.pdf
 
-This fork is sourced from the Multispork project. Fix errors and add functionality.
+As far as possible, the standard Arduino function names are used (pinMode, digitalWrite, etc).
+
+Basic digital and anlog I/O have been implemented and tested in the initial release.
+
+Interrupts, analog switch, and level translation functions have not yet been fully implemented or tested.
+
+This project was forked from the MAX11300Arduino project by Pierce Nichols
